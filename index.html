@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dune Universe – Interactive Globe (Interpretation)</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #globe-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        #disclaimer {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 6px 12px;
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        #info-panel {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.75);
+            color: #e0e0e0;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            max-width: 220px;
+            pointer-events: none;
+            z-index: 10;
+            border: 1px solid #3a3a3a;
+        }
+        #info-panel h1 {
+            margin: 0 0 6px 0;
+            font-size: 18px;
+            color: #d4a373;
+        }
+        #info-panel p {
+            margin: 4px 0;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div id="globe-container"></div>
+    <div id="disclaimer">
+        <strong>Interpretation</strong> – Not an official Dune map. For reading aid only.
+    </div>
+    <div id="info-panel">
+        <h1>Dune Universe</h1>
+        <p>Key planets & locations</p>
+        <p style="font-size: 12px; color: #aaa;">Drag to rotate · Scroll to zoom</p>
+    </div>
+
+    <!-- Load Globe.gl from CDN -->
+    <script src="//cdn.jsdelivr.net/npm/globe.gl@2.34.0/dist/globe.gl.min.js"></script>
+
+    <script>
+        // --------------------------------------------------------------
+        // 1. DATA – Coordinates (lat, lng) for Dune locations.
+        //    These are approximate, chosen to reflect the relative
+        //    positions in the fan map you provided.
+        // --------------------------------------------------------------
+        const locations = [
+            { name: 'Arrakis (Dune)', lat: 60, lng: 0, color: '#f4a261', size: 0.8 },
+            { name: 'Caladan', lat: 45, lng: -30, color: '#2a9d8f', size: 0.6 },
+            { name: 'Giedi Prime', lat: 50, lng: 30, color: '#e76f51', size: 0.6 },
+            { name: 'Kaitain', lat: 30, lng: 0, color: '#e9c46a', size: 0.5 },
+            { name: 'Salusa Secundus', lat: 40, lng: -60, color: '#264653', size: 0.5 },
+            { name: 'Ix', lat: 55, lng: -15, color: '#a8dadc', size: 0.5 },
+            { name: 'Tleilax', lat: 35, lng: 45, color: '#457b9d', size: 0.5 }
+        ];
+
+        // Additional points of interest on Arrakis (relative to its position)
+        const arrakisPoints = [
+            { name: 'Arrakeen', lat: 60, lng: -5, color: '#ffb703', size: 0.4 },
+            { name: 'Carthag', lat: 62, lng: 5, color: '#ffb703', size: 0.4 },
+            { name: 'Sietch Tabr', lat: 58, lng: -10, color: '#ffb703', size: 0.4 },
+            { name: 'Observatory Mount', lat: 60, lng: 0, color: '#ffb703', size: 0.4 }
+        ];
+
+        // --------------------------------------------------------------
+        // 2. INITIALISE GLOBE
+        // --------------------------------------------------------------
+        const container = document.getElementById('globe-container');
+        const world = Globe()
+            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+            .backgroundImageUrl('//unpkg.com/three-globe/example/img/night-sky.png')
+            .showAtmosphere(true)
+            .atmosphereColor('#e0e0e0')
+            .atmosphereAltitude(0.15)
+            (container);
+
+        // Set initial camera position
+        world.pointOfView({ lat: 40, lng: -20, altitude: 2.5 });
+
+        // --------------------------------------------------------------
+        // 3. ADD MARKERS
+        // --------------------------------------------------------------
+        // Combine all points
+        const allPoints = [...locations, ...arrakisPoints];
+
+        // Add markers as small spheres
+        world
+            .pointsData(allPoints)
+            .pointLat('lat')
+            .pointLng('lng')
+            .pointColor('color')
+            .pointAltitude(0.01)
+            .pointRadius('size')
+            .pointLabel('name')
+            .pointResolution(16)
+            .pointsMerge(false)
+            .pointsTransitionDuration(0);
+
+        // Add labels for major planets
+        world
+            .labelsData(locations)
+            .labelLat('lat')
+            .labelLng('lng')
+            .labelText('name')
+            .labelSize(0.8)
+            .labelColor('color')
+            .labelDotRadius(0.2)
+            .labelAltitude(0.015)
+            .labelResolution(2);
+
+        // --------------------------------------------------------------
+        // 4. OPTIONAL – Add a subtle ring around the globe
+        // --------------------------------------------------------------
+        world.ringsData([
+            { lat: 60, lng: 0, color: '#f4a261', maxR: 3, propagationSpeed: 1, repeatPeriod: 800 }
+        ])
+        .ringColor('color')
+        .ringMaxRadius('maxR')
+        .ringPropagationSpeed('propagationSpeed')
+        .ringRepeatPeriod('repeatPeriod');
+
+        // --------------------------------------------------------------
+        // 5. CONTROLS & AUTO‑ROTATE (disabled for manual exploration)
+        // --------------------------------------------------------------
+        world.controls().autoRotate = false;
+        world.controls().enableDamping = true;
+        world.controls().dampingFactor = 0.1;
+
+        // --------------------------------------------------------------
+        // 6. RESIZE HANDLER
+        // --------------------------------------------------------------
+        window.addEventListener('resize', () => {
+            world.width(window.innerWidth);
+            world.height(window.innerHeight);
+        });
+    </script>
+</body>
+</html>
